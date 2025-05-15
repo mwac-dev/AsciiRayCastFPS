@@ -1,0 +1,31 @@
+# Executables and object files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+
+# Build folders
+build/
+bin/
+out/
+Debug/
+Release/
+
+# IDE-specific files
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.user
+*.suo
+
+# Temporary files
+*~
+*.swp
+
+# Other
+/temp/
+/tmp/
