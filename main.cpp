@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <Windows.h>
+
 int nScreenWidth = 120;
 int nScreenHeight = 40;
 
@@ -18,19 +19,19 @@ float fFOV = 3.14159f / 4.0f;
 float fDepth = 16.0f;
 float fRotateSpeed = 1.5f;
 float fMoveSpeed = 2.5f;
+float lookThreshold = 0.75f;
 
-
-char lookingLeft = '>';
-char lookingRight = '<';
+char lookingRight = '>';
+char lookingLeft = '<';
 char lookingUp = '^';
 char lookingDown = 'v';
-;
 
-
-float lookThreshold = 0.75f;
+bool bDebug = false;
+static bool previousMKeyState = false;
 
 
 int main() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 3);
     // creating screen buffer here
     auto screen = new wchar_t[nScreenWidth * nScreenHeight];
     HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER,
@@ -45,9 +46,9 @@ int main() {
     map += L"#....#######...#";
     map += L"#..............#";
     map += L"#.......#......#";
+    map += L"#.....#####....#";
     map += L"#.......#......#";
-    map += L"#.......#..v...#";
-    map += L"#.......#......#";
+    map += L"#.......#v.....#";
     map += L"###...#####..###";
     map += L"#.......#......#";
     map += L"#..............#";
@@ -67,22 +68,22 @@ int main() {
             if (map[y * nMapWidth + x] == lookingLeft) {
                 fPlayerPosX = (float) x;
                 fPlayerPosY = (float) y;
-                fPlayerAngle = 3.14159f;
+                fPlayerAngle = 3.14159f * 1.5f;
                 map[y * nMapWidth + x] = '.';
             } else if (map[y * nMapWidth + x] == lookingRight) {
                 fPlayerPosX = (float) x;
                 fPlayerPosY = (float) y;
-                fPlayerAngle = 0.0f;
+                fPlayerAngle = 0.5f * 3.14159f;
                 map[y * nMapWidth + x] = '.';
             } else if (map[y * nMapWidth + x] == lookingUp) {
                 fPlayerPosX = (float) x;
                 fPlayerPosY = (float) y;
-                fPlayerAngle = 0.5f * 3.14159f;
+                fPlayerAngle = 3.14159f;
                 map[y * nMapWidth + x] = '.';
             } else if (map[y * nMapWidth + x] == lookingDown) {
                 fPlayerPosX = (float) x;
                 fPlayerPosY = (float) y;
-                fPlayerAngle = 3.14159f;
+                fPlayerAngle = 0.0f;
                 map[y * nMapWidth + x] = '.';
             }
         }
@@ -98,13 +99,19 @@ int main() {
 
         //displaying map
 
-        if (GetAsyncKeyState((unsigned short) 'A') & 0x8000) {
+        bool currentMKeyState = GetAsyncKeyState('M') & 0x8000;
+        if (currentMKeyState && !previousMKeyState) {
+            bDebug = !bDebug;
+        }
+        previousMKeyState = currentMKeyState;
+
+        if (GetAsyncKeyState('A') & 0x8000) {
             fPlayerAngle -= fRotateSpeed * fDeltaTime;
         }
-        if (GetAsyncKeyState((unsigned short) 'D') & 0x8000) {
+        if (GetAsyncKeyState('D') & 0x8000) {
             fPlayerAngle += fRotateSpeed * fDeltaTime;
         }
-        if (GetAsyncKeyState((unsigned short) 'W') & 0x8000) {
+        if (GetAsyncKeyState('W') & 0x8000) {
             float newX = fPlayerPosX + sinf(fPlayerAngle) * fMoveSpeed * fDeltaTime;
             float newY = fPlayerPosY + cosf(fPlayerAngle) * fMoveSpeed * fDeltaTime;
             if (map[(int) newY * nMapWidth + (int) newX] != '#') {
@@ -112,7 +119,7 @@ int main() {
                 fPlayerPosY = newY;
             }
         }
-        if (GetAsyncKeyState((unsigned short) 'S') & 0x8000) {
+        if (GetAsyncKeyState('S') & 0x8000) {
             float newX = fPlayerPosX - sinf(fPlayerAngle) * fMoveSpeed * fDeltaTime;
             float newY = fPlayerPosY - cosf(fPlayerAngle) * fMoveSpeed * fDeltaTime;
             if (map[(int) newY * nMapWidth + (int) newX] != '#') {
@@ -122,39 +129,37 @@ int main() {
         }
 
         for (int x = 0; x < nScreenWidth; x++) {
-
             //----debug stuff start--------------
-            //map
-            for (int x = 0; x < nMapWidth; x++) {
-                for (int y = 0; y < nMapHeight; y++) {
+            if (bDebug) {
+                //map
+                for (int x = 0; x < nMapWidth; x++) {
+                    for (int y = 0; y < nMapHeight; y++) {
+                        if (int(fPlayerPosX) == x && int(fPlayerPosY) == y) {
+                            wchar_t lookChar;
+                            float angle = fPlayerAngle;
+                            // Normalize angle to [0, 2π]
+                            while (angle < 0) angle += 2 * 3.14159f;
+                            while (angle > 2 * 3.14159f) angle -= 2 * 3.14159f;
 
-                    if (int(fPlayerPosX) == x && int(fPlayerPosY) == y) {
-                        wchar_t lookChar;
-                        float angle = fPlayerAngle;
-                        // Normalize angle to [0, 2π]
-                        while (angle < 0) angle += 2 * 3.14159f;
-                        while (angle > 2 * 3.14159f) angle -= 2 * 3.14159f;
+                            if (abs(angle - 0.0f) < lookThreshold || abs(angle - 2 * 3.14159f) < lookThreshold)
+                                lookChar = lookingDown;
+                            else if (abs(angle - 3.14159f) < lookThreshold)
+                                lookChar = lookingUp;
+                            else if (abs(angle - 0.5f * 3.14159f) < lookThreshold)
+                                lookChar = lookingRight;
+                            else if (abs(angle - 1.5f * 3.14159f) < lookThreshold)
+                                lookChar = lookingLeft;
 
-                        if (abs(angle - 0.0f) < lookThreshold || abs(angle - 2 * 3.14159f) < lookThreshold)
-                            lookChar = lookingDown;
-                        else if (abs(angle - 3.14159f) < lookThreshold)
-                            lookChar = lookingUp;
-                        else if (abs(angle - 0.5f * 3.14159f) < lookThreshold)
-                            lookChar = lookingLeft;
-                        else if (abs(angle - 1.5f * 3.14159f) < lookThreshold)
-                            lookChar = lookingRight;
-                        else
-                            lookChar = '+';
-
-                        screen[(y + 1) * nScreenWidth + x] = lookChar;
-                    } else {
-                        screen[(y + 1) * nScreenWidth + x] = map[y * nMapWidth + x];
+                            screen[(y + 1) * nScreenWidth + x] = lookChar;
+                        } else {
+                            screen[(y + 1) * nScreenWidth + x] = map[y * nMapWidth + x];
+                        }
                     }
                 }
-            }
 
-            //fps
-            swprintf_s(screen, nScreenWidth * nScreenHeight, L"FPS: %f", 1.0f / fDeltaTime);
+                //fps top middle
+                swprintf_s(screen + nScreenWidth / 2, nScreenWidth * nScreenHeight, L"FPS: %f", 1.0f / fDeltaTime);
+            }
             //----debug stuff end--------------
 
             float fRayAngle = (fPlayerAngle - fFOV / 2.0f) + ((float) x / (float) nScreenWidth) * fFOV;
@@ -186,18 +191,20 @@ int main() {
                         //close enough to the original ray from the player,
                         //then we are looking at a boundary
 
-                        std::vector<std::pair<float,float>> p; //distance and dot product (helpful to avoid counting the back 'culled' corners of a wall)
-                        for (int cornerX = 0; cornerX < 2; cornerX ++) {
-                            for (int cornerY = 0; cornerY <2; cornerY++) {
+                        std::vector<std::pair<float, float> > p;
+                        //distance and dot product (helpful to avoid counting the back 'culled' corners of a wall)
+                        for (int cornerX = 0; cornerX < 2; cornerX++) {
+                            for (int cornerY = 0; cornerY < 2; cornerY++) {
                                 float vectorY = (float) nTestY + cornerY - fPlayerPosY;
                                 float vectorX = (float) nTestX + cornerX - fPlayerPosX;
                                 float d = sqrtf(vectorX * vectorX + vectorY * vectorY);
                                 float dot = (fEyeX * vectorX / d) + (fEyeY * vectorY / d);
                                 p.emplace_back(d, dot);
 
-                                sort( p.begin(), p.end(), [](const std::pair<float,float>& left, const std::pair<float,float>& right) {
-                                    return left.first < right.first;
-                                });
+                                sort(p.begin(), p.end(),
+                                     [](const std::pair<float, float>& left, const std::pair<float, float>& right) {
+                                         return left.first < right.first;
+                                     });
 
                                 // trying to alter the thickness of the boundary depending on distance
                                 // if the wall is further away, then the boundary should be thinner (smaller number)
@@ -214,14 +221,12 @@ int main() {
                                 }
 
                                 if (p.capacity() > 2) {
-
-                                    if (acos(p.at(0).second)<fBound) bHitBoundary = true;
-                                    if (acos(p.at(1).second)<fBound) bHitBoundary = true;
+                                    if (acos(p.at(0).second) < fBound) bHitBoundary = true;
+                                    if (acos(p.at(1).second) < fBound) bHitBoundary = true;
                                     // if (acos(p.at(2).second)<fBound) bHitBoundary = true;
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -233,7 +238,7 @@ int main() {
             short nWallVisual = ' ';
             wchar_t nFloorVisual = L' ';
 
-            if (fDistanceToWall <= fDepth /4.0f) {
+            if (fDistanceToWall <= fDepth / 4.0f) {
                 nWallVisual = 0x2588; // 0x2588 is a solid block
             } else if (fDistanceToWall < fDepth / 3.0f) {
                 nWallVisual = 0x2593; // dark shade
