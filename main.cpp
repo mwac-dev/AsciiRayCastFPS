@@ -31,7 +31,6 @@ static bool previousMKeyState = false;
 
 
 int main() {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 3);
     // creating screen buffer here
     auto screen = new wchar_t[nScreenWidth * nScreenHeight];
     HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER,
