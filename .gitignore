@@ -1,3 +1,6 @@
+# Cmake
+cmake-*/
+
 # Executables and object files
 *.o
 *.obj
