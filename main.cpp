@@ -1,9 +1,8 @@
+#include <Windows.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <iostream>
 #include <vector>
-#include <algorithm>
-#include <Windows.h>
 
 int nScreenWidth = 120;
 int nScreenHeight = 40;

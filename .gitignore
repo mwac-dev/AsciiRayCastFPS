@@ -26,6 +26,9 @@ Release/
 *~
 *.swp
 
+# Clangd
+.cache/
+
 # Other
 /temp/
 /tmp/
